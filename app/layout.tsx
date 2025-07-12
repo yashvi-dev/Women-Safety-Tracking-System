@@ -1,33 +1,36 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import { AuthProvider } from '@/contexts/auth-context';
+import { SOSProvider } from '@/contexts/sos-context';
+import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from '@/components/ui/toaster';
+import './globals.css';
 
-const inter = Inter({ subsets: ["latin"] })
-
-export const metadata: Metadata = {
-  title: "SafeTrack - Women's Safety Tracking System",
-  description: "Real-time location tracking and safety alerts for women",
-    generator: 'v0.dev'
-}
+export const metadata = {
+  title: 'Women Safety Tracking System',
+  description: 'A real-time safety tracking system for women'
+};
 
 export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+  children
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <SOSProvider>
+              {children}
+              <Toaster />
+            </SOSProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
-
-
-
-import './globals.css'

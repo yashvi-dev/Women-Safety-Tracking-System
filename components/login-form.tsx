@@ -1,74 +1,114 @@
-"use client"
+'use client';
 
-import type React from "react"
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useAuth } from '@/contexts/auth-context';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/use-toast';
+import { Loader2 } from 'lucide-react';
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Shield, User } from "lucide-react"
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const router = useRouter()
-  const [role, setRole] = useState<"tracked" | "guardian">("tracked")
+  const { login } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    router.push(`/dashboard/${role}`)
-  }
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  const onSubmit = async (data: LoginFormValues) => {
+    try {
+      setIsLoading(true);
+      await login(data.email, data.password);
+      
+      toast({
+        title: 'Welcome back!',
+        description: 'You have successfully logged in.',
+      });
+
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Login failed',
+        description: error.response?.data?.message || 'Please check your credentials and try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" required placeholder="Enter your email" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" required placeholder="Enter your password" />
-        </div>
-      </div>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  {...field}
+                  disabled={isLoading}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <div className="space-y-2">
-        <Label>Select Role</Label>
-        <RadioGroup
-          defaultValue="tracked"
-          className="grid grid-cols-2 gap-4"
-          onValueChange={(value) => setRole(value as "tracked" | "guardian")}
-        >
-          <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900">
-            <RadioGroupItem value="tracked" id="tracked" />
-            <Label htmlFor="tracked" className="flex items-center cursor-pointer">
-              <User className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
-              Tracked User
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900">
-            <RadioGroupItem value="guardian" id="guardian" />
-            <Label htmlFor="guardian" className="flex items-center cursor-pointer">
-              <Shield className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
-              Guardian
-            </Label>
-          </div>
-        </RadioGroup>
-      </div>
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="Enter your password"
+                  {...field}
+                  disabled={isLoading}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <Button
-        type="submit"
-        className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800"
-      >
-        Sign In
-      </Button>
-
-      <div className="text-center text-sm">
-        <a href="#" className="text-purple-600 dark:text-purple-400 hover:underline">
-          Forgot password?
-        </a>
-      </div>
-    </form>
-  )
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Sign In
+        </Button>
+      </form>
+    </Form>
+  );
 }
 
